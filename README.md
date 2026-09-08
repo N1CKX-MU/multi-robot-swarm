@@ -1,7 +1,7 @@
 # Multi-Robot Swarm Coordination
 
 Work in progress. ROS 2 Jazzy, Gazebo Harmonic, TurtleBot3, following a
-7-day build plan (Day 1 of 7 complete).
+7-day build plan (Days 1-3 of 7 complete).
 
 ## Status
 
@@ -68,9 +68,49 @@ resource limit. See `swarm_nav2.launch.py`'s docstring for the two
 honest next steps (test with fewer robots, or just wait for Day 4's
 real SLAM localization to replace this placeholder outright).
 
-Not done yet: consensus rendezvous, formation control, cooperative
-exploration, metrics, or the final polished README -- these follow over
-the rest of the 7-day plan.
+**Day 2 — Consensus rendezvous (plain numpy, `tiny/consensus_rendezvous.py`): done.**
+
+Hand-derived the graph Laplacian and its eigenvalues for four topologies
+(ring, complete, star, line) before writing any code, then verified the
+numpy implementation reproduces those exact numbers:
+
+| Topology | Fiedler value (hand-derived == code output) |
+|---|---|
+| Complete | 4 |
+| Ring | 2 |
+| Star | 1 |
+| Line | 0.5858 |
+
+`consensus_{ring,complete,star,line}.png` show each topology's
+trajectories; `convergence_comparison.png` overlays all four -- the
+empirical proof that more graph connectivity converges faster.
+
+Also found something the plan doesn't state explicitly: the textbook
+stability rule "epsilon < 1/max_degree" is a conservative sufficient
+bound, not the real condition (`epsilon < 2/lambda_max`). Demonstrated
+by running ring and star at the same epsilon=0.6 past that bound --
+ring stayed stable anyway because the initial square-corner positions
+have exactly zero overlap (dot product) with ring's one unstable
+eigenvector, while star's initial positions have nonzero overlap with
+its unstable eigenvector and diverge to ~1e7. Same danger eigenvalue on
+both graphs (lambda_max=4), completely different outcome, because
+stability under a fixed epsilon depends on the initial condition, not
+just the graph.
+
+**Day 3 — Formation control (plain numpy, `tiny/formation_control.py`): done.**
+
+Leader-follower formation control: a scripted leader follows a sine-wave
+path, three followers hold a rotating offset around it
+(`goal = center + R(heading) @ offset`, heading taken from the leader's
+velocity direction via `atan2`), with a hard formation-shape switch
+(square -> diamond -> line) partway through. `formation_run.png` shows
+the followers visibly swinging with the leader's changing heading
+(bigger offsets swing more) and the discontinuous jump at each shape
+switch.
+
+Not done yet: cooperative exploration, metrics, the ROS integration of
+the consensus/formation controllers, or the final polished README --
+these follow over the rest of the 7-day plan.
 
 ## Quick start
 
