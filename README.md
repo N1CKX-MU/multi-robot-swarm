@@ -1,7 +1,7 @@
 # Multi-Robot Swarm Coordination
 
 Work in progress. ROS 2 Jazzy, Gazebo Harmonic, TurtleBot3, following a
-7-day build plan (Days 1-3 of 7 complete).
+7-day build plan (Days 1-5 of 7 complete).
 
 ## Status
 
@@ -108,9 +108,41 @@ the followers visibly swinging with the leader's changing heading
 (bigger offsets swing more) and the discontinuous jump at each shape
 switch.
 
-Not done yet: cooperative exploration, metrics, the ROS integration of
-the consensus/formation controllers, or the final polished README --
-these follow over the rest of the 7-day plan.
+**Day 4 — Cooperative exploration via Voronoi partitioning (plain numpy,
+`tiny/cooperative_exploration.py`): done.**
+
+Frontier detection (free cell adjacent to unknown) filtered by Voronoi
+ownership (nearest-robot-wins, computed as a brute-force per-cell
+distance comparison -- no `scipy.spatial.Voronoi`, which sidesteps that
+library's known crash on collinear/degenerate robot positions, since no
+explicit Voronoi diagram is ever constructed). `cooperative_exploration.png`
+shows a fake occupancy grid split into 4 non-overlapping regions, with
+each frontier cell colored by its owning robot.
+
+**Day 5 — Metrics + exploration scaling experiment (plain numpy,
+`tiny/exploration_scaling.py`): done.**
+
+Extends Day 4 into a real time-stepped simulation: robots move toward
+their nearest owned frontier and sense a radius around themselves each
+step, run until 95% coverage, repeated over 5 trials per robot count
+(1-5) to measure mean +/- stddev rather than trusting a single run.
+Result: speedup climbs with diminishing returns (1.89x -> 4.35x going
+from 2 to 5 robots) while redundant coverage overlap rises from ~0% to
+~19% and plateaus -- the real cost/benefit curve of adding robots.
+
+Caught and fixed two bugs in the experiment's own boilerplate before
+trusting the result: every trial was coming back bit-identical (a
+hardcoded RNG seed inside the map generator, and a global
+`np.random.seed()` call that doesn't actually affect
+`np.random.default_rng()` objects at all), and the 1-robot baseline was
+hitting its step cap without finishing, which would have silently
+deflated every speedup number. Written by Claude at Nick's request
+(not hand-derived/hand-typed like Days 2-4) -- flagged here rather than
+implied otherwise.
+
+Not done yet: dynamic behaviors / collision avoidance, the ROS
+integration of the consensus/formation/exploration controllers, or the
+final polished README -- these follow over the rest of the 7-day plan.
 
 ## Quick start
 
