@@ -1,7 +1,14 @@
 # Multi-Robot Swarm Coordination
 
 Work in progress. ROS 2 Jazzy, Gazebo Harmonic, TurtleBot3, following a
-7-day build plan (Days 1-5 of 7 complete).
+7-day build plan (Days 1-6 of 7 complete).
+
+**Capstone (planned):** convoy escort demo -- one payload robot travels
+a route through an obstacle corridor while 3 escorts hold a protective
+formation that reshapes for chokepoints, with APF collision avoidance
+against both other robots and walls. `tiny/collision_avoidance.py`
+(Day 6, below) is this capstone's algorithmic foundation, proven in
+standalone numpy before the real ROS/Gazebo integration.
 
 ## Status
 
@@ -140,9 +147,37 @@ deflated every speedup number. Written by Claude at Nick's request
 (not hand-derived/hand-typed like Days 2-4) -- flagged here rather than
 implied otherwise.
 
-Not done yet: dynamic behaviors / collision avoidance, the ROS
-integration of the consensus/formation/exploration controllers, or the
-final polished README -- these follow over the rest of the 7-day plan.
+**Day 6 — Dynamic formation switching + inter-robot/wall collision
+avoidance via Artificial Potential Fields (plain numpy,
+`tiny/collision_avoidance.py`): done.**
+
+Also this project's capstone foundation: one payload robot follows a
+waypoint route, 3 escorts hold a formation (diamond -> line -> diamond)
+around it that reshapes for a corridor chokepoint, with APF repulsion
+(`strength = (1/dist - 1/d_safe) / dist^2`) keeping escorts clear of
+each other and of the corridor walls.
+
+Debugging this surfaced two real, distinct manifestations of APF's
+known local-minimum failure mode, both fixed at the mission-design
+level rather than by tuning gains:
+- The formation-reshape waypoint originally sat mid-corridor, so
+  escorts got commanded back into a wide diamond while still
+  physically between the walls.
+- Even after fixing that, escorts still grazed the corridor's exact
+  corners on both entry and exit -- a diamond offset can be
+  geometrically close enough to a wall to trigger repulsion before
+  the robot's x-position even reaches the wall's x-range (Euclidean
+  corner-distance vs. an x-only view of "am I near the wall"), which
+  very nearly stalemates against the formation-pull trying to reshape
+  it. Fixed by giving the reshape enough lead distance on both sides
+  of the corridor to fully settle before the wall's repulsion field is
+  geometrically relevant. Final result: 0.296 minimum wall clearance,
+  0.482 minimum inter-robot clearance, both comfortably positive.
+
+Not done yet: the ROS integration of the consensus/formation/exploration
+controllers, the actual capstone Gazebo demo, or the final polished
+README -- these follow over the rest of the 7-day plan (plus a
+capstone "Day 8").
 
 ## Quick start
 
